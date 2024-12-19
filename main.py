@@ -1,66 +1,54 @@
 from math import ceil
+from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI
-from nba_api.stats.endpoints.commonplayerinfo import CommonPlayerInfo
-from nba_api.stats.static.players import get_active_players
 
-from player_list_dto import PlayerListDTO
-from util import get_all_player_ids
+from util import get_all_player_ids, get_player_info
 
 app = FastAPI()
 
 
-total_players: int = len(get_active_players())
-player_ids: list = get_all_player_ids()
-
-
-# Returns all current NBA players via pagination
 @app.get("/players")
-def get_all_players(page: int = 1, players_per_page: int = 10) -> dict:
-    current_page: int = 1
-    next_page: int = 2
-    previous_page: int = 0
-    isLastPage: bool = False
+def get_all_players(page: int = 1, players_per_page: int = 10) -> Dict[str, Any]:
+    MAX_PLAYERS_PER_PAGE: int = 50
+    player_ids: List[int] = get_all_player_ids()
+    total_players: int = len(player_ids)
+    total_pages: int = ceil(total_players / players_per_page)
 
-    if page > 0 and page <= ceil(total_players / players_per_page):
-        current_page = page
-        if page == ceil(total_players / players_per_page):
-            isLastPage = True
-            next_page = None
-        else:
-            next_page = current_page + 1
-    if current_page > 1:
-        previous_page = current_page - 1
+    if players_per_page < 1 or players_per_page > MAX_PLAYERS_PER_PAGE:
+        players_per_page = 10
+        page = 1
+        total_pages = ceil(total_players / players_per_page)
 
-    players_with_full_info: list = []
-    start: int = (current_page * players_per_page) - players_per_page
-    end: int = current_page * players_per_page
+    if page < 1:
+        current_page: int = 1
+    elif page > total_pages:
+        current_page: int = total_pages
+    else:
+        current_page: int = page
+
+    if current_page == total_pages:
+        next_page: Optional[int] = None
+    else:
+        next_page: Optional[int] = current_page + 1
+
+    if current_page == 1:
+        previous_page: Optional[int] = None
+    else:
+        previous_page: Optional[int] = current_page - 1
+
+    start: int = (current_page - 1) * players_per_page
+    end: int = start + players_per_page
+
+    players: List[Dict[str, Any]] = []
     for id in player_ids[start:end]:
-        response: CommonPlayerInfo = CommonPlayerInfo(id).get_dict()
-        player_data: list = response["resultSets"][0]["rowSet"][0]
-
-        player: PlayerListDTO = PlayerListDTO(
-            player_id=player_data[0],
-            first_name=player_data[1],
-            last_name=player_data[2],
-            birth_date=player_data[7],
-            height=player_data[11],
-            weight=player_data[12],
-            season_exp=player_data[13],
-            jersey=player_data[14],
-            position=player_data[15],
-            team_id=player_data[18],
-            team_city=player_data[22],
-            team_name=player_data[19],
-        )
-
-        players_with_full_info.append(player)
+        players.append(get_player_info(id))
 
     return {
-        "players": players_with_full_info,
+        "players": players,
         "currentPage": current_page,
         "nextPage": next_page,
         "previousPage": previous_page,
-        "isLastPage": isLastPage,
+        "is_last_page": current_page == total_pages,
         "totalPlayers": total_players,
     }
