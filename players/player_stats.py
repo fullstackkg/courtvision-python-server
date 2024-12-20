@@ -25,7 +25,7 @@ from pydantic import BaseModel
 #     fouls: int
 
 
-class PlayerStatsDTO(BaseModel):
+class PlayerStats(BaseModel):
     player_id: int
     first_name: str
     last_name: str

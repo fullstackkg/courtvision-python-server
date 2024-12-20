@@ -7,13 +7,13 @@ from fastapi import Response
 from fastapi.testclient import TestClient
 
 from main import app
-from players.player_list_dto import PlayerListDTO
+from players.player_summary import PlayerSummary
 
 # Mock data remains the same
 MOCK_PLAYER_IDS = [1630173, 203500]
 
 MOCK_PLAYERS = [
-    PlayerListDTO(
+    PlayerSummary(
         player_id=1630173,
         first_name="Precious",
         last_name="Achiuwa",
@@ -24,10 +24,10 @@ MOCK_PLAYERS = [
         jersey="5",
         position="F",
         team_id=1610612761,
-        team_city="Toronto",
-        team_name="Raptors",
+        team_city="New York",
+        team_name="Knicks",
     ),
-    PlayerListDTO(
+    PlayerSummary(
         player_id=203500,
         first_name="Steven",
         last_name="Adams",
@@ -51,7 +51,7 @@ def client() -> TestClient:
 
 @pytest.fixture
 def mock_get_player_info():
-    async def _mock_get_player_info(player_id: int) -> PlayerListDTO:
+    async def _mock_get_player_info(player_id: int) -> PlayerSummary:
         for player in MOCK_PLAYERS:
             if player.player_id == player_id:
                 return player
@@ -174,3 +174,31 @@ async def test_last_page_indicators(
         assert data["previousPage"] == 1
         assert data["nextPage"] is None
         assert data["is_last_page"]
+
+
+@pytest.mark.asyncio
+async def test_get_player_by_id(client: TestClient, mock_get_player_info) -> None:
+    with patch("main.get_player_info", new=mock_get_player_info):
+        response: Response = client.get("/players/1630173")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify the player data matches our mock
+        assert data["player_id"] == 1630173
+        assert data["first_name"] == "Precious"
+        assert data["last_name"] == "Achiuwa"
+        assert data["team_city"] == "New York"
+        assert data["team_name"] == "Knicks"
+
+
+@pytest.mark.asyncio
+async def test_get_player_by_id_not_found(
+    client: TestClient, mock_get_player_info
+) -> None:
+    with patch("main.get_player_info", new=mock_get_player_info):
+        response: Response = client.get("/players/99999")
+
+        assert response.status_code == 404
+        data = response.json()
+        assert "not found" in data["detail"].lower()

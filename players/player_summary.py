@@ -3,7 +3,7 @@ from typing import ClassVar
 from pydantic import BaseModel, computed_field
 
 
-class PlayerListDTO(BaseModel):
+class PlayerSummary(BaseModel):
     _teams: ClassVar[dict] = {
         "Hawks": {"conference": "Eastern", "division": "Southeast"},
         "Celtics": {"conference": "Eastern", "division": "Atlantic"},

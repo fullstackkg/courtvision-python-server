@@ -3,16 +3,15 @@ from math import ceil
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, status
-from fastapi.responses import JSONResponse
 
-from players.player_list_dto import PlayerListDTO
-from players.player_list_response import PlayerListResponse
+from players.player_summary import PlayerSummary
+from players.player_summary_response import PlayerSummaryResponse
 from util import get_all_player_ids, get_player_info
 
 app = FastAPI()
 
 
-@app.get("/players", response_model=PlayerListResponse)
+@app.get("/players", response_model=PlayerSummaryResponse)
 async def get_all_players(page: int = 1, players_per_page: int = 10) -> Dict[str, Any]:
     MAX_PLAYERS_PER_PAGE: int = 50
     MIN_PLAYERS_PER_PAGE: int = 1
@@ -57,7 +56,7 @@ async def get_all_players(page: int = 1, players_per_page: int = 10) -> Dict[str
     # Fetch detailed information for the players on the current page
     try:
         player_tasks = [get_player_info(id) for id in player_ids[start:end]]
-        players: List[PlayerListDTO] = await asyncio.wait_for(
+        players: List[PlayerSummary] = await asyncio.wait_for(
             asyncio.gather(*player_tasks), timeout=15.0
         )
     except asyncio.TimeoutError:
@@ -67,7 +66,7 @@ async def get_all_players(page: int = 1, players_per_page: int = 10) -> Dict[str
         )
 
     # Construct the final response with all our validated and calculated data
-    return PlayerListResponse(
+    return PlayerSummaryResponse(
         players=players,
         currentPage=page,
         nextPage=next_page,
@@ -75,3 +74,33 @@ async def get_all_players(page: int = 1, players_per_page: int = 10) -> Dict[str
         is_last_page=is_last_page,
         totalPlayers=total_players,
     )
+
+
+@app.get("/players/{player_id}", response_model=PlayerSummary)
+async def get_player_by_id(player_id: int) -> PlayerSummary:
+
+    try:
+        try:
+            player = await asyncio.wait_for(get_player_info(player_id), timeout=10.0)
+            return player
+
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail="Failed to retrieve player details within timeout period",
+            )
+
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Player with ID {player_id} not found",
+            )
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}",
+        )
