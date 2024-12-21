@@ -3,8 +3,8 @@ from typing import ClassVar
 from pydantic import BaseModel, computed_field
 
 
-class PlayerSummary(BaseModel):
-    _teams: ClassVar[dict] = {
+class Team(BaseModel):
+    _team_grouping: ClassVar[dict] = {
         "Hawks": {"conference": "Eastern", "division": "Southeast"},
         "Celtics": {"conference": "Eastern", "division": "Atlantic"},
         "Nets": {"conference": "Eastern", "division": "Atlantic"},
@@ -38,35 +38,11 @@ class PlayerSummary(BaseModel):
         "None": {"conference": "N/A", "division": "N/A"},
     }
 
-    player_id: int | None = None
-    first_name: str | None = None
-    last_name: str | None = None
-    birth_date: str | None = None
-    height: str | None = None
-    weight: str | None = None
-    season_exp: int | None = None
-    jersey: str | None = None
-    position: str | None = None
     team_id: int | None = None
-    team_city: str | None = None
-    team_name: str | None = None
-
-    @computed_field
-    @property
-    def conference(self) -> str:
-        team_name = self.team_name if self.team_name is not None else "None"
-        return self._teams.get(team_name, self._teams["None"])["conference"]
-
-    @computed_field
-    @property
-    def division(self) -> str:
-        team_name = self.team_name if self.team_name is not None else "None"
-        return self._teams.get(team_name, self._teams["None"])["division"]
-
-    @computed_field
-    @property
-    def player_image_url(self) -> str:
-        return f"https://cdn.nba.com/headshots/nba/latest/1040x760/{self.player_id}.png"
+    full_name: str | None = None
+    abbreviation: str | None = None
+    nickname: str | None = None
+    city: str | None = None
 
     @computed_field
     @property
@@ -74,3 +50,19 @@ class PlayerSummary(BaseModel):
         if self.team_id is None or self.team_id == 0:
             return "https://cdn.worldvectorlogo.com/logos/nba-6.svg"
         return f"https://cdn.nba.com/logos/nba/{self.team_id}/global/L/logo.svg"
+
+    @computed_field
+    @property
+    def conference(self) -> str:
+        nickname = self.nickname if self.nickname is not None else "None"
+        return self._team_grouping.get(nickname, self._team_grouping["None"])[
+            "conference"
+        ]
+
+    @computed_field
+    @property
+    def division(self) -> str:
+        nickname = self.nickname if self.nickname is not None else "None"
+        return self._team_grouping.get(nickname, self._team_grouping["None"])[
+            "division"
+        ]

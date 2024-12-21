@@ -6,7 +6,8 @@ from fastapi import FastAPI, HTTPException, status
 
 from players.player_summary import PlayerSummary
 from players.player_summary_response import PlayerSummaryResponse
-from util import get_all_player_ids, get_player_info
+from teams.team import Team
+from util import get_all_player_ids, get_all_team_data, get_player_info
 
 app = FastAPI()
 
@@ -99,6 +100,33 @@ async def get_player_by_id(player_id: int) -> PlayerSummary:
     except HTTPException:
         raise
 
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}",
+        )
+
+
+@app.get("/teams", response_model=List[Team])
+async def get_all_teams():
+    try:
+        print("Method called...")
+        teams_data: List[dict] = await get_all_team_data()
+        print(teams_data)
+        teams: List[Team] = []
+
+        print("Starting to print teams...")
+        for data in teams_data:
+            team: Team = Team(
+                team_id=data["id"],
+                full_name=data["full_name"],
+                abbreviation=data["abbreviation"],
+                nickname=data["nickname"],
+                city=data["city"],
+            )
+            teams.append(team)
+        print("End of the loop...")
+        return teams
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any, Dict, List
 from unittest.mock import patch
 
@@ -9,7 +8,6 @@ from fastapi.testclient import TestClient
 from main import app
 from players.player_summary import PlayerSummary
 
-# Mock data remains the same
 MOCK_PLAYER_IDS = [1630173, 203500]
 
 MOCK_PLAYERS = [

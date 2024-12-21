@@ -5,6 +5,7 @@ from typing import Callable, List
 
 from nba_api.stats.endpoints.commonplayerinfo import CommonPlayerInfo
 from nba_api.stats.static.players import get_active_players
+from nba_api.stats.static.teams import get_teams
 
 from players.player_summary import PlayerSummary
 
@@ -17,6 +18,12 @@ async def get_all_player_ids() -> List[int]:
         executor, get_active_players
     )
     return [player["id"] for player in active_nba_players]
+
+
+async def get_all_team_data() -> List[dict]:
+    loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
+    nba_teams: List[dict] = await loop.run_in_executor(executor, get_teams)
+    return nba_teams
 
 
 async def get_player_info(player_id: int) -> PlayerSummary:
